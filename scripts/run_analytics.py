@@ -95,7 +95,7 @@ def run_analytics():
         sys.path.append('analytics')
         from log_analytics import main as analytics_main
 
-        print("🚀 Starting Spark analytics pipeline...")
+        print(" Starting Spark analytics pipeline...")
         analytics_main()
         print(" Analytics completed successfully")
         return True

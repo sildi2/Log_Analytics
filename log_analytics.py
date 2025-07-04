@@ -390,12 +390,38 @@ def simple_pattern_mining(spark):
     return frequent_patterns if pattern_count > 0 else fallback_patterns
 
 
-def test_data_loading_performance(spark):
-    """Test data loading performance with different dataset sizes"""
+def run_performance_tests(spark, logs_df):
+    """Run comprehensive performance testing - CONSOLIDATED REPORT VERSION"""
 
-    print("\n=== Testing Data Loading Performance ===")
+    print("\n=== Performance Testing ===")
 
-    # Test different data sizes - FIXED paths
+    response = input("Run performance benchmarks? (y/N): ").strip().lower()
+
+    if response != 'y':
+        print("⏭️  Skipping performance tests")
+        return True
+
+    try:
+        print("🔄 Running omprehensive performance analysis...")
+
+        # Run all tests silently (no individual output)
+        load_results = test_data_loading_performance_silent(spark)
+        query_results = test_query_performance_silent(spark)
+        rdd_results = test_rdd_performance_silent(spark, logs_df)
+
+        # Generate single consolidated report
+        generate_consolidated_performance_report(load_results, query_results, rdd_results)
+
+        return True
+
+    except Exception as e:
+        print(f" Performance testing failed: {e}")
+        return False
+
+
+def test_data_loading_performance_silent(spark):
+    """Test data loading performance - SILENT VERSION"""
+
     test_datasets = [
         ("Small Dataset", "hdfs://localhost:9000/logs/raw/logs_small.json"),
         ("Medium Dataset", "hdfs://localhost:9000/logs/raw/logs_medium.json"),
@@ -406,39 +432,22 @@ def test_data_loading_performance(spark):
     results = []
 
     for test_name, path in test_datasets:
-        print(f"\n--- Testing {test_name} ---")
-
         try:
             start_time = time.time()
-
-            # Load data
             df = spark.read.json(path)
-
-            # Force evaluation with count
             count = df.count()
-
             load_time = time.time() - start_time
-
-            # Get partition info
             num_partitions = df.rdd.getNumPartitions()
 
-            result = {
+            results.append({
                 "test": test_name,
                 "record_count": count,
                 "load_time": load_time,
                 "num_partitions": num_partitions,
                 "records_per_second": count / load_time if load_time > 0 else 0
-            }
-
-            results.append(result)
-
-            print(f"Records: {count:,}")
-            print(f"Load time: {load_time:.2f}s")
-            print(f"Partitions: {num_partitions}")
-            print(f"Records/sec: {count / load_time:,.0f}")
+            })
 
         except Exception as e:
-            print(f"Failed to test {test_name}: {e}")
             results.append({
                 "test": test_name,
                 "error": str(e)
@@ -447,74 +456,46 @@ def test_data_loading_performance(spark):
     return results
 
 
-def test_query_performance(spark):
-    """Test query performance on different operations"""
+def test_query_performance_silent(spark):
+    """Test query performance - SILENT VERSION"""
 
-    print("\n=== Testing Query Performance ===")
-
-    # Load data for testing - FIXED path
     try:
         df = spark.read.json("hdfs://localhost:9000/logs/raw/*")
         df.createOrReplaceTempView("logs")
-
         record_count = df.count()
-        print(f"Testing with {record_count:,} records")
-
-    except Exception as e:
-        print(f"Failed to load test data: {e}")
+    except Exception:
         return []
 
-    # Define test queries
     test_queries = [
         ("Simple Count", "SELECT COUNT(*) FROM logs"),
         ("Group By Level", "SELECT level, COUNT(*) FROM logs GROUP BY level"),
         ("Filter + Count", "SELECT COUNT(*) FROM logs WHERE status_code >= 400"),
-        ("Complex Aggregation", """
-            SELECT server, COUNT(*) as requests, AVG(response_time) as avg_time
-            FROM logs GROUP BY server ORDER BY requests DESC
-        """),
-        ("Time-based Query", """
-            SELECT HOUR(timestamp) as hour, COUNT(*) as requests
-            FROM logs GROUP BY HOUR(timestamp) ORDER BY hour
-        """),
-        ("Join-like Query", """
-            SELECT endpoint, method, COUNT(*) as requests
-            FROM logs GROUP BY endpoint, method ORDER BY requests DESC LIMIT 20
-        """)
+        ("Complex Aggregation",
+         "SELECT server, COUNT(*) as requests, AVG(response_time) as avg_time FROM logs GROUP BY server ORDER BY requests DESC"),
+        ("Time-based Query",
+         "SELECT HOUR(timestamp) as hour, COUNT(*) as requests FROM logs GROUP BY HOUR(timestamp) ORDER BY hour"),
+        ("Join-like Query",
+         "SELECT endpoint, method, COUNT(*) as requests FROM logs GROUP BY endpoint, method ORDER BY requests DESC LIMIT 20")
     ]
 
     results = []
 
     for query_name, query in test_queries:
-        print(f"\n--- Testing {query_name} ---")
-
         try:
             start_time = time.time()
-
-            # Execute query
             result_df = spark.sql(query)
-
-            # Force evaluation
             result_count = result_df.count()
-
             query_time = time.time() - start_time
 
-            result = {
+            results.append({
                 "query": query_name,
                 "execution_time": query_time,
                 "result_rows": result_count,
                 "input_records": record_count,
                 "records_per_second": record_count / query_time if query_time > 0 else 0
-            }
-
-            results.append(result)
-
-            print(f"Execution time: {query_time:.2f}s")
-            print(f"Result rows: {result_count}")
-            print(f"Processing rate: {record_count / query_time:,.0f} records/sec")
+            })
 
         except Exception as e:
-            print(f"Failed to execute {query_name}: {e}")
             results.append({
                 "query": query_name,
                 "error": str(e)
@@ -523,22 +504,15 @@ def test_query_performance(spark):
     return results
 
 
-def test_rdd_performance(spark, logs_df):
-    """Test RDD operations performance - COMPREHENSIVE VERSION"""
-
-    print("\n=== Testing RDD Performance ===")
+def test_rdd_performance_silent(spark, logs_df):
+    """Test RDD operations performance - SILENT VERSION"""
 
     try:
-        # Get RDD from DataFrame
         rdd = logs_df.rdd
         record_count = rdd.count()
-        print(f"Testing RDD operations with {record_count:,} records")
-
-    except Exception as e:
-        print(f"Failed to load test data: {e}")
+    except Exception:
         return []
 
-    # Define RDD operations tests
     rdd_tests = [
         ("Count", lambda r: r.count()),
         ("Filter", lambda r: r.filter(lambda row: row.status_code >= 400).count()),
@@ -551,14 +525,9 @@ def test_rdd_performance(spark, logs_df):
     results = []
 
     for test_name, operation in rdd_tests:
-        print(f"\n--- Testing RDD {test_name} ---")
-
         try:
             start_time = time.time()
-
-            # Execute operation
             result = operation(rdd)
-
             execution_time = time.time() - start_time
 
             result_info = {
@@ -575,11 +544,7 @@ def test_rdd_performance(spark, logs_df):
 
             results.append(result_info)
 
-            print(f"Execution time: {execution_time:.2f}s")
-            print(f"Processing rate: {record_count / execution_time:,.0f} records/sec")
-
         except Exception as e:
-            print(f"Failed RDD {test_name}: {e}")
             results.append({
                 "operation": test_name,
                 "error": str(e)
@@ -588,64 +553,104 @@ def test_rdd_performance(spark, logs_df):
     return results
 
 
-def run_performance_tests(spark, logs_df):
-    """Run comprehensive performance testing - FIXED VERSION"""
+def generate_consolidated_performance_report(load_results, query_results, rdd_results):
+    print(f"\n{'=' * 70}")
+    print(" PERFORMANCE REPORT")
+    print(f"{'=' * 70}")
 
-    print("\n=== Performance Testing ===")
+    print(f"\nTest conducted: {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
-    response = input("Run performance benchmarks? (y/N): ").strip().lower()
+    print(f"\n DATA LOADING PERFORMANCE")
+    print("-" * 50)
+    print(f"{'Test':<20} {'Records':<10} {'Time(s)':<8} {'Rate(rec/s)':<12} {'Status':<8}")
+    print("-" * 50)
 
-    if response != 'y':
-        print("  Skipping performance tests")
-        return True
+    for result in load_results:
+        if 'error' not in result:
+            print(
+                f"{result['test']:<20} {result['record_count']:<10,} {result['load_time']:<8.2f} {result['records_per_second']:<12,.0f} {' PASS':<8}")
+        else:
+            print(f"{result['test']:<20} {'N/A':<10} {'N/A':<8} {'N/A':<12} {' FAIL':<8}")
 
-    try:
-        # Run all performance tests
-        load_results = test_data_loading_performance(spark)
-        query_results = test_query_performance(spark)
-        rdd_results = test_rdd_performance(spark, logs_df)
+    # === QUERY PERFORMANCE ===
+    print(f"\n QUERY PERFORMANCE")
+    print("-" * 50)
+    print(f"{'Query':<20} {'Time(s)':<8} {'Rows':<8} {'Rate(rec/s)':<12} {'Status':<8}")
+    print("-" * 50)
 
-        print(f"\n--- PERFORMANCE SUMMARY ---")
+    for result in query_results:
+        if 'error' not in result:
+            print(
+                f"{result['query']:<20} {result['execution_time']:<8.2f} {result['result_rows']:<8} {result['records_per_second']:<12,.0f} {' PASS':<8}")
+        else:
+            print(f"{result['query']:<20} {'N/A':<8} {'N/A':<8} {'N/A':<12} {' FAIL':<8}")
 
-        # Count successful operations
-        successful_loads = len([r for r in load_results if 'error' not in r])
-        successful_queries = len([r for r in query_results if 'error' not in r])
-        successful_rdd = len([r for r in rdd_results if 'error' not in r])
+    # === RDD PERFORMANCE ===
+    print(f"\n  RDD OPERATIONS PERFORMANCE")
+    print("-" * 50)
+    print(f"{'Operation':<20} {'Time(s)':<8} {'Rate(rec/s)':<12} {'Status':<8}")
+    print("-" * 50)
 
-        print(f"Load tests: {successful_loads}/{len(load_results)} successful")
-        print(f"Query tests: {successful_queries}/{len(query_results)} successful")
-        print(f"RDD tests: {successful_rdd}/{len(rdd_results)} successful")
+    for result in rdd_results:
+        if 'error' not in result:
+            print(
+                f"{result['operation']:<20} {result['execution_time']:<8.2f} {result['records_per_second']:<12,.0f} {' PASS':<8}")
+        else:
+            print(f"{result['operation']:<20} {'N/A':<8} {'N/A':<12} {' FAIL':<8}")
 
-        if successful_queries > 0:
-            fastest_time = float('inf')
-            fastest_query_name = None
+    # === PERFORMANCE SUMMARY ===
+    successful_loads = len([r for r in load_results if 'error' not in r])
+    successful_queries = len([r for r in query_results if 'error' not in r])
+    successful_rdd = len([r for r in rdd_results if 'error' not in r])
 
-            for result in query_results:
-                if 'error' not in result and result['execution_time'] < fastest_time:
-                    fastest_time = result['execution_time']
-                    fastest_query_name = result['query']
+    total_tests = len(load_results) + len(query_results) + len(rdd_results)
+    total_passed = successful_loads + successful_queries + successful_rdd
 
-            if fastest_query_name:
-                print(f"Fastest Query: {fastest_query_name} ({fastest_time:.2f}s)")
+    print(f"\n PERFORMANCE SUMMARY")
+    print("-" * 30)
+    print(f"Data Loading Tests:  {successful_loads}/{len(load_results)} passed")
+    print(f"Query Tests:         {successful_queries}/{len(query_results)} passed")
+    print(f"RDD Tests:           {successful_rdd}/{len(rdd_results)} passed")
+    print(f"Overall Success:     {total_passed}/{total_tests} ({total_passed / total_tests * 100:.1f}%)")
 
-        if successful_rdd > 0:
-            fastest_rdd_time = float('inf')
-            fastest_rdd_name = None
+    if successful_queries > 0:
+        fastest_time = float('inf')
+        fastest_query_name = None
 
-            for result in rdd_results:
-                if 'error' not in result and result['execution_time'] < fastest_rdd_time:
-                    fastest_rdd_time = result['execution_time']
-                    fastest_rdd_name = result['operation']
+        for result in query_results:
+            if 'error' not in result and result['execution_time'] < fastest_time:
+                fastest_time = result['execution_time']
+                fastest_query_name = result['query']
 
-            if fastest_rdd_name:
-                print(f"Fastest RDD Op: {fastest_rdd_name} ({fastest_rdd_time:.2f}s)")
+        if fastest_query_name:
+            print(f"Fastest Query:       {fastest_query_name} ({fastest_time:.2f}s)")
 
-        print("Performance testing completed")
-        return True
+    if successful_rdd > 0:
+        fastest_rdd_time = float('inf')
+        fastest_rdd_name = None
 
-    except Exception as e:
-        print(f" Performance testing failed: {e}")
-        return False
+        for result in rdd_results:
+            if 'error' not in result and result['execution_time'] < fastest_rdd_time:
+                fastest_rdd_time = result['execution_time']
+                fastest_rdd_name = result['operation']
+
+        if fastest_rdd_name:
+            print(f"Fastest RDD Op:      {fastest_rdd_name} ({fastest_rdd_time:.2f}s)")
+
+    if successful_loads > 0:
+        best_rate = 0
+        best_load_name = None
+
+        for result in load_results:
+            if 'error' not in result and result['records_per_second'] > best_rate:
+                best_rate = result['records_per_second']
+                best_load_name = result['test']
+
+        if best_load_name:
+            print(f"Best Load Rate:      {best_load_name} ({best_rate:.0f} rec/s)")
+
+    print(f"\n Performance testing completed - All metrics captured")
+    print(f"{'=' * 70}")
 
 
 def save_results_to_hdfs(spark, results, time_results, user_results):
