@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Enhanced Log Analytics with Spark - Following Course Examples
-Big Data Course Project - Log Analytics with HDFS Integration
-COMPLETE FIXED VERSION - All issues resolved
+Log Analytics with Apache Spark and HDFS
+Big Data Course Project - Clean Professional Version with Fixed Performance Testing
 """
 
 import pyspark
@@ -17,29 +16,16 @@ import subprocess
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 
-def fix_spark_python_path():
-    """Fix Python path for Spark workers"""
-
-    # Get current Python executable path
-    python_path = sys.executable
-    print(f"Python executable: {python_path}")
-
-    # Set environment variables for Spark
-    os.environ['PYSPARK_PYTHON'] = python_path
-    os.environ['PYSPARK_DRIVER_PYTHON'] = python_path
-
-    print("✅ Python path configured for Spark workers")
-
-
 def create_spark_session():
-    """Create Spark Session with HDFS configuration (course pattern)"""
+    """Create Spark Session with HDFS configuration"""
 
-    print("=== Creating Spark Session ===")
+    print("=== Initializing Spark Session ===")
 
-    # Fix Python path first
-    fix_spark_python_path()
+    # Fix Python path for workers
+    os.environ['PYSPARK_PYTHON'] = sys.executable
+    os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
 
-    # Create Spark Session (exact course pattern with HDFS config)
+    # Create Spark Session with optimizations
     spark = pyspark.sql.SparkSession.builder \
         .appName("LogAnalyticsHDFS") \
         .config("spark.sql.adaptive.enabled", "true") \
@@ -47,110 +33,89 @@ def create_spark_session():
         .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
         .getOrCreate()
 
-    # Set Hadoop configuration for HDFS access
+    # Configure HDFS access
     spark.sparkContext._jsc.hadoopConfiguration().set("fs.defaultFS", "hdfs://localhost:9000")
 
-    print("Spark session created with HDFS integration!")
-    print(f"Spark version: {spark.version}")
-    print(f"Spark UI: http://localhost:4040/")
+    print(f" Spark {spark.version} initialized successfully")
+    print(f" Spark UI: http://localhost:4040/")
 
     return spark
 
 
-def load_log_data(spark, dataset_type="standard"):
-    """Load log data from HDFS (course pattern)"""
+def load_log_data(spark):
+    """Load log data from HDFS"""
 
-    print(f"\n=== Loading log data from HDFS ({dataset_type}) ===")
+    print("\n=== Loading Data from HDFS ===")
 
-    # Load from where we actually uploaded the data
-    hdfs_path = "hdfs://localhost:9000/logs/raw/*"  # Load all files we uploaded
+    hdfs_path = "hdfs://localhost:9000/logs/raw/*"
 
     try:
-        # Read JSON files from HDFS (following course examples)
         logs_df = spark.read.json(hdfs_path)
-
         count = logs_df.count()
-        print(f"Loaded {count:,} log entries from HDFS")
-        print(f"Number of partitions: {logs_df.rdd.getNumPartitions()}")
+        partitions = logs_df.rdd.getNumPartitions()
+
+        print(f"📁 Loaded {count:,} log entries")
+        print(f"🔢 Data distributed across {partitions} partitions")
 
         return logs_df
 
     except Exception as e:
-        print(f"Failed to load data from {hdfs_path}: {e}")
-        print("Make sure HDFS is running and data is uploaded")
+        print(f" Failed to load data: {e}")
         return None
 
 
-def basic_data_exploration(logs_df):
-    """Basic data exploration (course style)"""
+def explore_data(logs_df):
+    """Basic data exploration and setup"""
 
-    print("\n=== Basic Data Exploration ===")
+    print("\n=== Data Overview ===")
 
-    # Show schema (course style)
-    print("\nData schema:")
+    # Show schema
+    print("\nData structure:")
     logs_df.printSchema()
 
-    # Show sample data (course pattern)
-    print("\nSample log entries:")
-    logs_df.show(5, truncate=False)
+    # Sample data
+    print(f"\nSample log entries:")
+    logs_df.show(3, truncate=False)
 
-    # Basic statistics
-    print(f"\nDataset statistics:")
-    print(f"Total records: {logs_df.count():,}")
-    print(f"Columns: {len(logs_df.columns)}")
+    # Data quality check
+    print(f"\nDataset info:")
+    print(f"  Records: {logs_df.count():,}")
+    print(f"  Columns: {len(logs_df.columns)}")
 
-    # Check for null values
-    print("\nNull value check:")
-    null_found = False
-    for column in logs_df.columns:
-        null_count = logs_df.filter(col(column).isNull()).count()
-        if null_count > 0:
-            print(f"  {column}: {null_count} null values")
-            null_found = True
-
-    if not null_found:
-        print("  No null values found")
-
-    return logs_df
-
-
-def create_temporary_views(logs_df):
-    """Create temporary views for SQL queries (course pattern)"""
-
-    print("\n=== Creating Temporary Views ===")
-
-    # Create temporary view for SQL queries (course pattern)
-    logs_df.createOrReplaceTempView("logs")
-    print("Temporary view 'logs' created")
-
-    # Create additional views for time-based analysis
+    # Create time-enhanced view
     logs_with_time = logs_df.withColumn("date", to_date(col("timestamp"))) \
         .withColumn("hour", hour(col("timestamp"))) \
         .withColumn("day_of_week", dayofweek(col("timestamp")))
 
+    logs_df.createOrReplaceTempView("logs")
     logs_with_time.createOrReplaceTempView("logs_time")
-    print("Temporary view 'logs_time' created with time components")
+
+    print(" Temporary views created for SQL analysis")
 
     return logs_with_time
 
 
-def basic_analytics(spark):
-    """Basic analytics using Spark SQL (course style)"""
+def analyze_log_patterns(spark):
+    """Core log analysis using Spark SQL"""
 
-    print("\n=== Basic Log Analytics Results ===")
+    print("\n=== Log Pattern Analysis ===")
 
-    # 1. Count by log level (course SQL pattern)
-    print("\n1. Log entries by level:")
+    results = {}
+
+    # 1. Request distribution by log level
+    print("\n1. Log Level Distribution:")
     level_counts = spark.sql("""
-        SELECT level, COUNT(*) as count 
+        SELECT level, COUNT(*) as count,
+               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM logs), 2) as percentage
         FROM logs 
         GROUP BY level 
         ORDER BY count DESC
     """)
     level_counts.show()
+    results['levels'] = level_counts
 
-    # 2. Top endpoints (course SQL pattern)
-    print("\n2. Top 10 endpoints:")
+    # 2. Top endpoints analysis
+    print("\n2. Most Accessed Endpoints:")
     top_endpoints = spark.sql("""
         SELECT endpoint, COUNT(*) as requests
         FROM logs 
@@ -158,635 +123,648 @@ def basic_analytics(spark):
         ORDER BY requests DESC 
         LIMIT 10
     """)
-    top_endpoints.show()
+    top_endpoints.show(truncate=False)
+    results['endpoints'] = top_endpoints
 
-    # 3. Error analysis (course pattern)
-    print("\n3. Error analysis (status codes >= 400):")
-    errors = spark.sql("""
-        SELECT status_code, COUNT(*) as error_count
+    # 3. Error analysis
+    print("\n3. Error Pattern Analysis:")
+    error_analysis = spark.sql("""
+        SELECT status_code, COUNT(*) as count,
+               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM logs), 2) as error_rate
         FROM logs 
         WHERE status_code >= 400
         GROUP BY status_code 
-        ORDER BY error_count DESC
-    """)
-    errors.show()
-
-    # 4. Server performance (course aggregation pattern)
-    print("\n4. Average response time by server:")
-    server_performance = spark.sql("""
-        SELECT server, 
-               AVG(response_time) as avg_response_time,
-               COUNT(*) as total_requests,
-               MIN(response_time) as min_response_time,
-               MAX(response_time) as max_response_time
-        FROM logs 
-        GROUP BY server 
-        ORDER BY avg_response_time DESC
-    """)
-    server_performance.show()
-
-    # 5. HTTP method distribution
-    print("\n5. HTTP method distribution:")
-    method_dist = spark.sql("""
-        SELECT method, COUNT(*) as count,
-               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM logs), 2) as percentage
-        FROM logs 
-        GROUP BY method 
         ORDER BY count DESC
     """)
-    method_dist.show()
+    error_analysis.show()
+    results['errors'] = error_analysis
 
-    return {
-        'level_counts': level_counts,
-        'top_endpoints': top_endpoints,
-        'errors': errors,
-        'server_performance': server_performance,
-        'method_dist': method_dist
-    }
+    # 4. Server performance metrics
+    print("\n4. Server Performance:")
+    server_perf = spark.sql("""
+        SELECT server, 
+               COUNT(*) as total_requests,
+               ROUND(AVG(response_time), 2) as avg_response_ms,
+               MAX(response_time) as max_response_ms
+        FROM logs 
+        GROUP BY server 
+        ORDER BY avg_response_ms DESC
+    """)
+    server_perf.show()
+    results['servers'] = server_perf
+
+    return results
 
 
-def time_based_analytics(spark):
-    """Time-based analysis (course pattern)"""
+def analyze_time_patterns(spark):
+    """Time-based traffic analysis"""
 
-    print("\n=== Time-based Analysis ===")
+    print("\n=== Time-Based Analysis ===")
 
     # Hourly traffic distribution
-    hourly_traffic = spark.sql("""
-        SELECT hour, COUNT(*) as requests,
-               AVG(response_time) as avg_response_time,
+    print("\n1. Hourly Traffic Pattern:")
+    hourly = spark.sql("""
+        SELECT hour, 
+               COUNT(*) as requests,
+               ROUND(AVG(response_time), 2) as avg_response_time,
                SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors
         FROM logs_time 
         GROUP BY hour 
         ORDER BY hour
     """)
+    hourly.show(24)
 
-    print("Hourly traffic distribution:")
-    hourly_traffic.show(24)
-
-    # Daily traffic patterns
-    daily_traffic = spark.sql("""
-        SELECT date, COUNT(*) as requests,
-               AVG(response_time) as avg_response_time,
-               SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors,
+    # Daily patterns
+    print("\n2. Daily Traffic Summary:")
+    daily = spark.sql("""
+        SELECT date, 
+               COUNT(*) as requests,
+               ROUND(AVG(response_time), 2) as avg_response_time,
                ROUND(SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as error_rate
         FROM logs_time 
         GROUP BY date 
         ORDER BY date
     """)
+    daily.show()
 
-    print("\nDaily traffic patterns:")
-    daily_traffic.show()
-
-    # Day of week analysis
-    dow_traffic = spark.sql("""
-        SELECT day_of_week,
-               CASE day_of_week 
-                   WHEN 1 THEN 'Sunday'
-                   WHEN 2 THEN 'Monday' 
-                   WHEN 3 THEN 'Tuesday'
-                   WHEN 4 THEN 'Wednesday'
-                   WHEN 5 THEN 'Thursday'
-                   WHEN 6 THEN 'Friday'
-                   WHEN 7 THEN 'Saturday'
-               END as day_name,
-               COUNT(*) as requests,
-               AVG(response_time) as avg_response_time
-        FROM logs_time 
-        GROUP BY day_of_week 
-        ORDER BY day_of_week
-    """)
-
-    print("\nDay of week analysis:")
-    dow_traffic.show()
-
-    return {
-        'hourly_traffic': hourly_traffic,
-        'daily_traffic': daily_traffic,
-        'dow_traffic': dow_traffic
-    }
+    return {'hourly': hourly, 'daily': daily}
 
 
-def user_analytics(spark):
-    """User activity analysis (course pattern)"""
+def analyze_user_behavior(spark):
+    """User activity and session analysis"""
 
-    print("\n=== User Activity Analysis ===")
+    print("\n=== User Behavior Analysis ===")
 
-    # Top active users
+    # Top users by activity
+    print("\n1. Most Active Users:")
     user_activity = spark.sql("""
-        SELECT user_id, COUNT(*) as requests, 
-               AVG(response_time) as avg_response_time,
+        SELECT user_id, 
+               COUNT(*) as requests,
                COUNT(DISTINCT session_id) as sessions,
-               COUNT(DISTINCT endpoint) as unique_endpoints
+               COUNT(DISTINCT endpoint) as unique_pages,
+               ROUND(AVG(response_time), 2) as avg_response_time
         FROM logs 
         WHERE user_id IS NOT NULL
         GROUP BY user_id 
         ORDER BY requests DESC 
-        LIMIT 20
+        LIMIT 15
     """)
-
-    print("Top 20 most active users:")
     user_activity.show()
 
     # Session analysis
-    session_analysis = spark.sql("""
-        SELECT session_id, user_id, COUNT(*) as page_views,
+    print("\n2. Session Patterns:")
+    sessions = spark.sql("""
+        SELECT session_id, user_id, 
+               COUNT(*) as page_views,
                COUNT(DISTINCT endpoint) as unique_pages,
                MIN(timestamp) as session_start,
-               MAX(timestamp) as session_end,
-               AVG(response_time) as avg_response_time
+               MAX(timestamp) as session_end
         FROM logs 
         WHERE session_id IS NOT NULL
         GROUP BY session_id, user_id
         ORDER BY page_views DESC
-        LIMIT 15
+        LIMIT 10
     """)
+    sessions.show(truncate=False)
 
-    print("\nTop 15 user sessions:")
-    session_analysis.show(truncate=False)
-
-    return {
-        'user_activity': user_activity,
-        'session_analysis': session_analysis
-    }
+    return {'users': user_activity, 'sessions': sessions}
 
 
-def rdd_operations_demo_fixed(spark, logs_df):
-    """RDD operations demonstration using Spark SQL (course style - FIXED)"""
+def demonstrate_rdd_operations(spark, logs_df):
+    """RDD operations using SQL for demonstration"""
 
-    print("\n=== RDD Operations (Course Style - Fixed) ===")
+    print("\n=== Distributed Processing Demo ===")
 
-    # Get basic RDD info
-    logs_rdd = logs_df.rdd
+    # RDD info
+    rdd = logs_df.rdd
     total_records = logs_df.count()
-    num_partitions = logs_rdd.getNumPartitions()
+    partitions = rdd.getNumPartitions()
 
-    print(f"RDD created with {total_records:,} elements")
-    print(f"Number of partitions: {num_partitions}")
+    print(f"Processing {total_records:,} records across {partitions} partitions")
 
-    # Use Spark SQL instead of Python RDD operations for reliability
+    # Demonstrate key operations through SQL equivalents
+    print("\n1. Filter Operations (Error logs):")
+    error_count = spark.sql("SELECT COUNT(*) as count FROM logs WHERE status_code >= 400").collect()[0]['count']
+    print(f"   Found {error_count:,} error entries")
 
-    # 1. Filter operations (equivalent to RDD filter)
-    print("\n1. Filter Operations (RDD concept via SQL):")
-    error_count = spark.sql("""
-        SELECT COUNT(*) as error_count 
-        FROM logs 
-        WHERE status_code >= 400
-    """).collect()[0]['error_count']
-
-    print(f"Error logs: {error_count:,}")
-
-    # 2. Map operations (equivalent to RDD map + distinct)
-    print("\n2. Map Operations (RDD concept via SQL):")
-    unique_endpoints = spark.sql("""
-        SELECT DISTINCT endpoint 
-        FROM logs
-    """).collect()
-
-    print(f"Unique endpoints: {len(unique_endpoints)}")
-    print("Sample endpoints:")
-    for i, row in enumerate(unique_endpoints[:8]):
-        print(f"  {i + 1}. {row['endpoint']}")
-
-    # 3. MapReduce pattern (equivalent to map + reduceByKey)
-    print("\n3. MapReduce Pattern (RDD concept via SQL):")
+    print("\n2. Aggregation Operations (IP frequency):")
     ip_counts = spark.sql("""
-        SELECT ip_address, COUNT(*) as count
+        SELECT ip_address, COUNT(*) as requests
         FROM logs 
         GROUP BY ip_address 
-        ORDER BY count DESC 
-        LIMIT 10
+        ORDER BY requests DESC 
+        LIMIT 5
     """).collect()
 
-    print("Top IP addresses by request count:")
     for row in ip_counts:
-        print(f"  {row['ip_address']}: {row['count']} requests")
+        print(f"   {row['ip_address']}: {row['requests']} requests")
 
-    # 4. Aggregation operations (equivalent to various RDD transformations)
-    print("\n4. Aggregation Operations (RDD concept via SQL):")
-    server_stats = spark.sql("""
-        SELECT server, 
-               COUNT(*) as total_requests,
-               AVG(response_time) as avg_response_time,
-               SUM(bytes_sent) as total_bytes
-        FROM logs 
-        GROUP BY server 
-        ORDER BY total_requests DESC
-    """).collect()
-
-    print("Server statistics:")
-    for row in server_stats:
-        print(f"  {row['server']}: {row['total_requests']} requests, "
-              f"avg response: {row['avg_response_time']:.1f}ms, "
-              f"total bytes: {row['total_bytes']:,}")
+    print("\n3. Transformation Operations:")
+    unique_endpoints = spark.sql("SELECT COUNT(DISTINCT endpoint) as count FROM logs").collect()[0]['count']
+    print(f"   Identified {unique_endpoints} unique endpoints")
 
     return {
         'total_records': total_records,
+        'partitions': partitions,
         'error_count': error_count,
-        'unique_endpoints': len(unique_endpoints),
-        'top_ips': [(row['ip_address'], row['count']) for row in ip_counts],
-        'num_partitions': num_partitions
+        'unique_endpoints': unique_endpoints
     }
 
 
-# REPLACE the save_results_to_hdfs_fixed function with this WINDOWS-COMPATIBLE version:
-
-def save_results_to_hdfs_fixed(spark, results, time_results, user_results):
-    """Save analysis results to HDFS - Windows Compatible (FINAL)"""
-
-    print("\n=== Saving Results to HDFS ===")
-
-    try:
-        # Windows-compatible HDFS commands
-        hadoop_bin = "C:/hadoop/hadoop-3.4.1/bin/hdfs.cmd"
-
-        # Create results directory
-        import subprocess
-        result = subprocess.run([hadoop_bin, "dfs", "-mkdir", "-p", "/logs/results"],
-                                capture_output=True, text=True, shell=True)
-
-        print("✅ Results directory setup attempted")
-
-        # Save results directly using Spark (more reliable on Windows)
-        save_operations = [
-            (results['top_endpoints'], "top_endpoints", "Top endpoints analysis"),
-            (results['errors'], "error_analysis", "Error analysis"),
-            (results['server_performance'], "server_performance", "Server performance"),
-            (time_results['hourly_traffic'], "hourly_traffic", "Hourly traffic analysis"),
-            (time_results['daily_traffic'], "daily_traffic", "Daily traffic analysis"),
-            (user_results['user_activity'], "user_activity", "User activity analysis")
-        ]
-
-        successful_saves = 0
-
-        for dataframe, filename, description in save_operations:
-            try:
-                hdfs_path = f"hdfs://localhost:9000/logs/results/{filename}"
-
-                # Save using Spark's built-in HDFS support (most reliable)
-                dataframe.coalesce(1) \
-                    .write \
-                    .mode("overwrite") \
-                    .option("header", "true") \
-                    .csv(hdfs_path)
-
-                print(f"✅ {description} saved to HDFS: {filename}")
-                successful_saves += 1
-
-            except Exception as e:
-                # Try JSON format as backup
-                try:
-                    json_path = f"hdfs://localhost:9000/logs/results/{filename}_json"
-                    dataframe.coalesce(1) \
-                        .write \
-                        .mode("overwrite") \
-                        .json(json_path)
-                    print(f"✅ {description} saved as JSON: {filename}_json")
-                    successful_saves += 1
-                except:
-                    print(f"❌ Could not save {filename}")
-
-        print(f"\n=== Save Summary: {successful_saves}/{len(save_operations)} successful ===")
-
-        # Verify using command line
-        try:
-            verify_result = subprocess.run([hadoop_bin, "dfs", "-ls", "/logs/results"],
-                                           capture_output=True, text=True, shell=True)
-            if verify_result.returncode == 0 and verify_result.stdout.strip():
-                print("✅ Results verified in HDFS:")
-                for line in verify_result.stdout.strip().split('\n'):
-                    if line.strip() and not line.startswith('Found'):
-                        parts = line.split()
-                        if len(parts) >= 8:
-                            filename = parts[-1].split('/')[-1]
-                            print(f"  📁 {filename}")
-            else:
-                print("✅ Results saved via Spark (verification via command line failed)")
-
-        except:
-            print("✅ Results saved via Spark (command line verification unavailable)")
-
-        return successful_saves > 0
-
-    except Exception as e:
-        print(f"Using Spark-only save method due to: {str(e)[:50]}...")
-
-        # Fallback: Save using only Spark (no external commands)
-        try:
-            results['top_endpoints'].coalesce(1) \
-                .write.mode("overwrite").option("header", "true") \
-                .csv("hdfs://localhost:9000/logs/results/spark_top_endpoints")
-            print("✅ At least top endpoints saved successfully via Spark")
-            return True
-        except:
-            print("❌ All save methods failed - but analytics completed successfully!")
-            return False
-
-
-# ADD this function to show Spark UI:
-
-def show_spark_ui_access(spark):
-    """Show Spark UI while running"""
-
-    print(f"\n{'=' * 60}")
-    print("🌐 SPARK UI ACCESS")
-    print(f"{'=' * 60}")
-    print(f"Spark UI is now available at: http://localhost:4040/")
-    print(f"Application ID: {spark.sparkContext.applicationId}")
-    print(f"Application Name: {spark.sparkContext.appName}")
-    print(f"\n📊 In the Spark UI you can see:")
-    print(f"  • Jobs and stages execution")
-    print(f"  • SQL queries performance")
-    print(f"  • Executors and storage")
-    print(f"  • Environment configuration")
-
-    # Pause to allow UI access
-    print(f"\n⏸️  Pausing for 30 seconds so you can check the Spark UI...")
-    print(f"   Open your browser to: http://localhost:4040/")
-
-    import time
-    for i in range(30, 0, -1):
-        print(f"   Time remaining: {i} seconds", end='\r')
-        time.sleep(1)
-
-    print(f"\n✅ Continuing with analysis...")
-
-
-def create_summary_report(results, time_results, user_results, rdd_results, start_time):
-    """Create a comprehensive summary report (NEW)"""
-
-    end_time = time.time()
-    total_time = end_time - start_time
-
-    print(f"\n{'=' * 60}")
-    print("📊 BIG DATA LOG ANALYTICS - SUMMARY REPORT")
-    print(f"{'=' * 60}")
-
-    print(f"\n⏱️  PERFORMANCE METRICS:")
-    print(f"  Total processing time: {total_time:.2f} seconds")
-    print(f"  Records processed: {rdd_results['total_records']:,}")
-    print(f"  Processing rate: {rdd_results['total_records'] / total_time:,.0f} records/second")
-    print(f"  Data partitions: {rdd_results['num_partitions']}")
-
-    print(f"\n📈 KEY ANALYTICS RESULTS:")
-    print(f"  Total log entries: {rdd_results['total_records']:,}")
-    print(
-        f"  Error entries: {rdd_results['error_count']:,} ({rdd_results['error_count'] / rdd_results['total_records'] * 100:.1f}%)")
-    print(f"  Unique endpoints: {rdd_results['unique_endpoints']}")
-
-    # Get top endpoint
-    top_endpoint_row = results['top_endpoints'].first()
-    print(f"  Most popular endpoint: {top_endpoint_row['endpoint']} ({top_endpoint_row['requests']} requests)")
-
-    # Get worst server
-    slowest_server = results['server_performance'].first()
-    print(f"  Slowest server: {slowest_server['server']} ({slowest_server['avg_response_time']:.1f}ms avg)")
-
-    print(f"\n🎯 COURSE OBJECTIVES ACHIEVED:")
-    objectives = [
-        "✅ HDFS distributed storage and retrieval",
-        "✅ Spark DataFrame and SQL operations",
-        "✅ RDD concepts demonstration (via SQL)",
-        "✅ Big data analytics and aggregations",
-        "✅ Time-series analysis and patterns",
-        "✅ User behavior and session tracking",
-        "✅ Performance optimization and monitoring",
-        "✅ Results storage back to HDFS"
-    ]
-
-    for objective in objectives:
-        print(f"  {objective}")
-
-    print(f"\n🔗 ACCESS POINTS:")
-    print(f"  Spark UI: http://localhost:4040/")
-    print(f"  HDFS Web UI: http://localhost:9870/")
-    print(f"  Results location: hdfs://localhost:9000/logs/results/")
-
-    print(f"\n🎓 PROJECT STATUS: COMPLETE & READY FOR SUBMISSION!")
-
-
-def performance_metrics(spark, start_time):
-    """Show performance metrics (course style)"""
-
-    end_time = time.time()
-    total_time = end_time - start_time
-
-    print(f"\n=== Performance Metrics ===")
-    print(f"Total processing time: {total_time:.2f} seconds")
-
-    # Spark metrics
-    try:
-        sc = spark.sparkContext
-        print(f"Spark application ID: {sc.applicationId}")
-        print(f"Spark application name: {sc.appName}")
-    except:
-        print("Could not retrieve detailed Spark metrics")
-
-
-def demonstrate_course_concepts(spark):
-    """Show explicit connections to course materials - ESSENTIAL for grades"""
-    print("\n🎓 COURSE CONCEPT DEMONSTRATION")
-    print("=" * 50)
-
-    # 1. HDFS (Course Chapter 3)
-    print("1. DISTRIBUTED FILE SYSTEM (HDFS)")
-    print("   ✅ Fault-tolerant storage across nodes")
-    print("   ✅ Write-once, read-many access pattern")
-    print("   ✅ Block-based storage with replication")
-
-    # 2. Spark (Course Chapter 7)
-    print("\n2. SPARK PROCESSING MODEL")
-    logs_df = spark.sql("SELECT * FROM logs LIMIT 1000")
-    print(f"   ✅ RDD Partitions: {logs_df.rdd.getNumPartitions()}")
-    print(f"   ✅ Lazy Evaluation: Transformations build DAG")
-    print(f"   ✅ In-Memory Processing: Faster than MapReduce")
-
-    # 3. Big Data Challenges
-    print("\n3. BIG DATA CHALLENGES ADDRESSED")
-    print("   ✅ Volume: Processing large log datasets")
-    print("   ✅ Velocity: Efficient batch processing")
-    print("   ✅ Variety: JSON log format handling")
-    print("   ✅ Veracity: Data validation and cleaning")
-
-
 def simple_pattern_mining(spark):
-    """Simple frequent pattern analysis - good for academic points"""
-    print("\n=== FREQUENT PATTERN ANALYSIS ===")
+    """Simple frequent pattern analysis - FIXED VERSION"""
 
-    # Most common endpoint-method pairs (market basket concept)
-    print("1. Most Frequent Endpoint-Method Combinations:")
+    print("\n=== Frequent Pattern Analysis ===")
+
+    # Check what data we actually have
+    print("\nData validation:")
+    total_records = spark.sql("SELECT COUNT(*) as count FROM logs").collect()[0]['count']
+    print(f"Total records: {total_records:,}")
+
+    # Check for null values in key fields
+    null_check = spark.sql("""
+        SELECT 
+            SUM(CASE WHEN endpoint IS NULL THEN 1 ELSE 0 END) as null_endpoints,
+            SUM(CASE WHEN method IS NULL THEN 1 ELSE 0 END) as null_methods,
+            SUM(CASE WHEN server IS NULL THEN 1 ELSE 0 END) as null_servers
+        FROM logs
+    """).collect()[0]
+
+    print(f"Null endpoints: {null_check['null_endpoints']}")
+    print(f"Null methods: {null_check['null_methods']}")
+    print(f"Null servers: {null_check['null_servers']}")
+
+    # 1. Most common endpoint-method pairs (LOWERED threshold)
+    print("\n1. Most Frequent Endpoint-Method Combinations:")
+
+    # Try with a much lower threshold first
     frequent_patterns = spark.sql("""
         SELECT endpoint, method, COUNT(*) as frequency,
                ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM logs), 2) as percentage
         FROM logs 
+        WHERE endpoint IS NOT NULL AND method IS NOT NULL
         GROUP BY endpoint, method
-        HAVING COUNT(*) > (SELECT COUNT(*) * 0.02 FROM logs)
+        HAVING COUNT(*) > 5
         ORDER BY frequency DESC
         LIMIT 10
     """)
-    frequent_patterns.show(truncate=False)
 
-    # Error co-occurrence patterns
+    pattern_count = frequent_patterns.count()
+
+    if pattern_count > 0:
+        frequent_patterns.show(truncate=False)
+    else:
+        print("No patterns found with threshold > 5. Showing top patterns without threshold:")
+        # Fallback: show top patterns regardless of threshold
+        fallback_patterns = spark.sql("""
+            SELECT endpoint, method, COUNT(*) as frequency,
+                   ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM logs), 2) as percentage
+            FROM logs 
+            WHERE endpoint IS NOT NULL AND method IS NOT NULL
+            GROUP BY endpoint, method
+            ORDER BY frequency DESC
+            LIMIT 10
+        """)
+        fallback_patterns.show(truncate=False)
+
+    # 2. Error co-occurrence patterns (LOWERED threshold)
     print("\n2. Common Error Patterns:")
     error_patterns = spark.sql("""
         SELECT server, endpoint, status_code, COUNT(*) as frequency
         FROM logs 
-        WHERE status_code >= 400
+        WHERE status_code >= 400 
+        AND server IS NOT NULL 
+        AND endpoint IS NOT NULL
         GROUP BY server, endpoint, status_code
-        HAVING COUNT(*) > 10
+        HAVING COUNT(*) > 2
         ORDER BY frequency DESC
         LIMIT 8
     """)
-    error_patterns.show(truncate=False)
 
-    return frequent_patterns
+    error_count = error_patterns.count()
 
+    if error_count > 0:
+        error_patterns.show(truncate=False)
+    else:
+        print("No error patterns found with threshold > 2. Showing all error patterns:")
+        # Fallback: show all error patterns
+        fallback_errors = spark.sql("""
+            SELECT server, endpoint, status_code, COUNT(*) as frequency
+            FROM logs 
+            WHERE status_code >= 400 
+            AND server IS NOT NULL 
+            AND endpoint IS NOT NULL
+            GROUP BY server, endpoint, status_code
+            ORDER BY frequency DESC
+            LIMIT 8
+        """)
+        fallback_errors.show(truncate=False)
 
-def generate_academic_summary(spark, results, time_results, user_results, start_time):
-    """Generate summary for your PDF report - ESSENTIAL"""
-    end_time = time.time()
-    total_time = end_time - start_time
-
-    print("\n" + "=" * 60)
-    print("📊 ACADEMIC PROJECT SUMMARY")
-    print("Course: Big Data | Professor: Marco Maggini")
-    print("=" * 60)
-
-    # Key metrics for your report
-    total_logs = spark.sql("SELECT COUNT(*) as count FROM logs").collect()[0]['count']
-
-    metrics = spark.sql("""
+    # 3. Basic pattern statistics
+    print("\n3. Pattern Statistics:")
+    pattern_stats = spark.sql("""
         SELECT 
-            COUNT(DISTINCT ip_address) as unique_ips,
-            COUNT(DISTINCT user_id) as unique_users,
             COUNT(DISTINCT endpoint) as unique_endpoints,
-            AVG(response_time) as avg_response_time,
-            SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as total_errors,
-            ROUND(SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as error_rate
+            COUNT(DISTINCT method) as unique_methods,
+            COUNT(DISTINCT CONCAT(endpoint, '-', method)) as unique_combinations,
+            COUNT(DISTINCT server) as unique_servers
         FROM logs
-    """).collect()[0]
+        WHERE endpoint IS NOT NULL AND method IS NOT NULL
+    """)
+    pattern_stats.show()
 
-    print(f"\n📈 KEY RESULTS FOR REPORT:")
-    print(f"Total Records Processed: {total_logs:,}")
-    print(f"Processing Time: {total_time:.2f} seconds")
-    print(f"Processing Rate: {total_logs / total_time:,.0f} records/second")
-    print(f"Unique Users: {metrics['unique_users']:,}")
-    print(f"Unique Endpoints: {metrics['unique_endpoints']:,}")
-    print(f"Average Response Time: {metrics['avg_response_time']:.2f}ms")
-    print(f"Error Rate: {metrics['error_rate']}%")
+    # 4. Most active servers
+    print("\n4. Server Activity Patterns:")
+    server_patterns = spark.sql("""
+        SELECT server, COUNT(*) as requests,
+               COUNT(DISTINCT endpoint) as unique_endpoints,
+               COUNT(DISTINCT method) as unique_methods
+        FROM logs 
+        WHERE server IS NOT NULL
+        GROUP BY server
+        ORDER BY requests DESC
+        LIMIT 5
+    """)
+    server_patterns.show()
 
-    # Business insights
-    peak_hour = spark.sql("""
-        SELECT HOUR(timestamp) as hour, COUNT(*) as requests
-        FROM logs GROUP BY HOUR(timestamp)
-        ORDER BY requests DESC LIMIT 1
-    """).collect()[0]
+    return frequent_patterns if pattern_count > 0 else fallback_patterns
 
-    print(f"\n🔍 BUSINESS INSIGHTS:")
-    print(f"Peak Traffic Hour: {peak_hour['hour']:02d}:00 ({peak_hour['requests']:,} requests)")
 
-    # Server performance
-    best_server = spark.sql("""
-        SELECT server, AVG(response_time) as avg_time, COUNT(*) as requests
-        FROM logs GROUP BY server ORDER BY avg_time LIMIT 1
-    """).collect()[0]
+def test_data_loading_performance(spark):
+    """Test data loading performance with different dataset sizes"""
 
-    print(f"Best Performing Server: {best_server['server']} ({best_server['avg_time']:.1f}ms avg)")
+    print("\n=== Testing Data Loading Performance ===")
 
-    # Course objectives
-    print(f"\n🎯 COURSE OBJECTIVES ACHIEVED:")
-    objectives = [
-        "✅ HDFS distributed storage implementation",
-        "✅ Spark RDD and DataFrame operations",
-        "✅ SQL queries on distributed data",
-        "✅ Pattern analysis and data mining",
-        "✅ Performance analysis and optimization",
-        "✅ Complete big data pipeline"
+    # Test different data sizes - FIXED paths
+    test_datasets = [
+        ("Small Dataset", "hdfs://localhost:9000/logs/raw/logs_small.json"),
+        ("Medium Dataset", "hdfs://localhost:9000/logs/raw/logs_medium.json"),
+        ("Large Dataset", "hdfs://localhost:9000/logs/raw/logs_large.json"),
+        ("All Raw Data", "hdfs://localhost:9000/logs/raw/*")
     ]
 
-    for obj in objectives:
-        print(f"  {obj}")
+    results = []
 
-    print(f"\n🏆 PROJECT STATUS: READY FOR SUBMISSION!")
+    for test_name, path in test_datasets:
+        print(f"\n--- Testing {test_name} ---")
 
-    return {
-        'total_time': total_time,
-        'total_records': total_logs,
-        'processing_rate': total_logs / total_time,
-        'error_rate': metrics['error_rate'],
-        'peak_hour': peak_hour['hour']
-    }
+        try:
+            start_time = time.time()
+
+            # Load data
+            df = spark.read.json(path)
+
+            # Force evaluation with count
+            count = df.count()
+
+            load_time = time.time() - start_time
+
+            # Get partition info
+            num_partitions = df.rdd.getNumPartitions()
+
+            result = {
+                "test": test_name,
+                "record_count": count,
+                "load_time": load_time,
+                "num_partitions": num_partitions,
+                "records_per_second": count / load_time if load_time > 0 else 0
+            }
+
+            results.append(result)
+
+            print(f"Records: {count:,}")
+            print(f"Load time: {load_time:.2f}s")
+            print(f"Partitions: {num_partitions}")
+            print(f"Records/sec: {count / load_time:,.0f}")
+
+        except Exception as e:
+            print(f"Failed to test {test_name}: {e}")
+            results.append({
+                "test": test_name,
+                "error": str(e)
+            })
+
+    return results
+
+
+def test_query_performance(spark):
+    """Test query performance on different operations"""
+
+    print("\n=== Testing Query Performance ===")
+
+    # Load data for testing - FIXED path
+    try:
+        df = spark.read.json("hdfs://localhost:9000/logs/raw/*")
+        df.createOrReplaceTempView("logs")
+
+        record_count = df.count()
+        print(f"Testing with {record_count:,} records")
+
+    except Exception as e:
+        print(f"Failed to load test data: {e}")
+        return []
+
+    # Define test queries
+    test_queries = [
+        ("Simple Count", "SELECT COUNT(*) FROM logs"),
+        ("Group By Level", "SELECT level, COUNT(*) FROM logs GROUP BY level"),
+        ("Filter + Count", "SELECT COUNT(*) FROM logs WHERE status_code >= 400"),
+        ("Complex Aggregation", """
+            SELECT server, COUNT(*) as requests, AVG(response_time) as avg_time
+            FROM logs GROUP BY server ORDER BY requests DESC
+        """),
+        ("Time-based Query", """
+            SELECT HOUR(timestamp) as hour, COUNT(*) as requests
+            FROM logs GROUP BY HOUR(timestamp) ORDER BY hour
+        """),
+        ("Join-like Query", """
+            SELECT endpoint, method, COUNT(*) as requests
+            FROM logs GROUP BY endpoint, method ORDER BY requests DESC LIMIT 20
+        """)
+    ]
+
+    results = []
+
+    for query_name, query in test_queries:
+        print(f"\n--- Testing {query_name} ---")
+
+        try:
+            start_time = time.time()
+
+            # Execute query
+            result_df = spark.sql(query)
+
+            # Force evaluation
+            result_count = result_df.count()
+
+            query_time = time.time() - start_time
+
+            result = {
+                "query": query_name,
+                "execution_time": query_time,
+                "result_rows": result_count,
+                "input_records": record_count,
+                "records_per_second": record_count / query_time if query_time > 0 else 0
+            }
+
+            results.append(result)
+
+            print(f"Execution time: {query_time:.2f}s")
+            print(f"Result rows: {result_count}")
+            print(f"Processing rate: {record_count / query_time:,.0f} records/sec")
+
+        except Exception as e:
+            print(f"Failed to execute {query_name}: {e}")
+            results.append({
+                "query": query_name,
+                "error": str(e)
+            })
+
+    return results
+
+
+def test_rdd_performance(spark, logs_df):
+    """Test RDD operations performance - COMPREHENSIVE VERSION"""
+
+    print("\n=== Testing RDD Performance ===")
+
+    try:
+        # Get RDD from DataFrame
+        rdd = logs_df.rdd
+        record_count = rdd.count()
+        print(f"Testing RDD operations with {record_count:,} records")
+
+    except Exception as e:
+        print(f"Failed to load test data: {e}")
+        return []
+
+    # Define RDD operations tests
+    rdd_tests = [
+        ("Count", lambda r: r.count()),
+        ("Filter", lambda r: r.filter(lambda row: row.status_code >= 400).count()),
+        ("Map", lambda r: r.map(lambda row: row.endpoint).distinct().count()),
+        ("MapReduce", lambda r: r.map(lambda row: (row.server, 1)).reduceByKey(lambda a, b: a + b).count()),
+        ("Complex Filter+Map", lambda r: r.filter(lambda row: row.level == "ERROR").map(
+            lambda row: (row.server, row.response_time)).collect())
+    ]
+
+    results = []
+
+    for test_name, operation in rdd_tests:
+        print(f"\n--- Testing RDD {test_name} ---")
+
+        try:
+            start_time = time.time()
+
+            # Execute operation
+            result = operation(rdd)
+
+            execution_time = time.time() - start_time
+
+            result_info = {
+                "operation": test_name,
+                "execution_time": execution_time,
+                "input_records": record_count,
+                "records_per_second": record_count / execution_time if execution_time > 0 else 0
+            }
+
+            if isinstance(result, list):
+                result_info["result_size"] = len(result)
+            else:
+                result_info["result_value"] = result
+
+            results.append(result_info)
+
+            print(f"Execution time: {execution_time:.2f}s")
+            print(f"Processing rate: {record_count / execution_time:,.0f} records/sec")
+
+        except Exception as e:
+            print(f"Failed RDD {test_name}: {e}")
+            results.append({
+                "operation": test_name,
+                "error": str(e)
+            })
+
+    return results
+
+
+def run_performance_tests(spark, logs_df):
+    """Run comprehensive performance testing - FIXED VERSION"""
+
+    print("\n=== Performance Testing ===")
+
+    response = input("Run performance benchmarks? (y/N): ").strip().lower()
+
+    if response != 'y':
+        print("  Skipping performance tests")
+        return True
+
+    try:
+        # Run all performance tests
+        load_results = test_data_loading_performance(spark)
+        query_results = test_query_performance(spark)
+        rdd_results = test_rdd_performance(spark, logs_df)
+
+        print(f"\n--- PERFORMANCE SUMMARY ---")
+
+        # Count successful operations
+        successful_loads = len([r for r in load_results if 'error' not in r])
+        successful_queries = len([r for r in query_results if 'error' not in r])
+        successful_rdd = len([r for r in rdd_results if 'error' not in r])
+
+        print(f"Load tests: {successful_loads}/{len(load_results)} successful")
+        print(f"Query tests: {successful_queries}/{len(query_results)} successful")
+        print(f"RDD tests: {successful_rdd}/{len(rdd_results)} successful")
+
+        if successful_queries > 0:
+            fastest_time = float('inf')
+            fastest_query_name = None
+
+            for result in query_results:
+                if 'error' not in result and result['execution_time'] < fastest_time:
+                    fastest_time = result['execution_time']
+                    fastest_query_name = result['query']
+
+            if fastest_query_name:
+                print(f"Fastest Query: {fastest_query_name} ({fastest_time:.2f}s)")
+
+        if successful_rdd > 0:
+            fastest_rdd_time = float('inf')
+            fastest_rdd_name = None
+
+            for result in rdd_results:
+                if 'error' not in result and result['execution_time'] < fastest_rdd_time:
+                    fastest_rdd_time = result['execution_time']
+                    fastest_rdd_name = result['operation']
+
+            if fastest_rdd_name:
+                print(f"Fastest RDD Op: {fastest_rdd_name} ({fastest_rdd_time:.2f}s)")
+
+        print("Performance testing completed")
+        return True
+
+    except Exception as e:
+        print(f" Performance testing failed: {e}")
+        return False
+
+
+def save_results_to_hdfs(spark, results, time_results, user_results):
+    """Save analysis results back to HDFS"""
+
+    print("\n=== Saving Results to HDFS ===")
+
+    try:
+        # Save key results
+        save_operations = [
+            (results['endpoints'], "top_endpoints"),
+            (results['errors'], "error_analysis"),
+            (results['servers'], "server_performance"),
+            (time_results['hourly'], "hourly_traffic"),
+            (user_results['users'], "user_activity")
+        ]
+
+        successful = 0
+        for dataframe, name in save_operations:
+            try:
+                hdfs_path = f"hdfs://localhost:9000/logs/results/{name}"
+                dataframe.coalesce(1).write.mode("overwrite").option("header", "true").csv(hdfs_path)
+                successful += 1
+            except Exception as e:
+                print(f" Failed to save {name}: {str(e)[:50]}...")
+
+        return successful > 0
+
+    except Exception as e:
+        print(f" Save operation failed: {e}")
+        return False
+
+
+def generate_summary_report(results, time_results, user_results, rdd_info, start_time):
+    """Generate final analytics summary"""
+
+    end_time = time.time()
+    processing_time = end_time - start_time
+
+    print(f"\n{'=' * 60}")
+    print(" LOG ANALYTICS SUMMARY REPORT")
+    print(f"{'=' * 60}")
+
+    print(f"\n⚡ Performance Metrics:")
+    print(f"   Total processing time: {processing_time:.2f} seconds")
+    print(f"   Records processed: {rdd_info['total_records']:,}")
+    print(f"   Processing rate: {rdd_info['total_records'] / processing_time:,.0f} records/second")
+    print(f"   Data partitions: {rdd_info['partitions']}")
+
+    print(f"\n Key Findings:")
+    print(f"   Total log entries: {rdd_info['total_records']:,}")
+    print(
+        f"   Error entries: {rdd_info['error_count']:,} ({rdd_info['error_count'] / rdd_info['total_records'] * 100:.1f}%)")
+    print(f"   Unique endpoints: {rdd_info['unique_endpoints']}")
+
+    # Top endpoint
+    top_endpoint = results['endpoints'].first()
+    print(f"   Most popular endpoint: {top_endpoint['endpoint']} ({top_endpoint['requests']} requests)")
+
+    # Server performance
+    slowest_server = results['servers'].first()
+    print(f"   Slowest server: {slowest_server['server']} ({slowest_server['avg_response_ms']}ms avg)")
+
+    print(f"\n Access Points:")
+    print(f"   Spark UI: http://localhost:4040/")
+    print(f"   HDFS Web UI: http://localhost:9870/")
+    print(f"   Results: hdfs://localhost:9000/logs/results/")
+
 
 def main():
-    """Main analytics function following course style - COMPLETE FIXED VERSION"""
+    """Main analytics pipeline"""
 
-    print("=== Enhanced Big Data Log Analytics with Spark and HDFS ===")
-    print("COMPLETE FIXED VERSION - All issues resolved")
+    print("=== Big Data Log Analytics with Spark and HDFS ===")
 
     start_time = time.time()
 
-    # Create Spark Session
+    # Initialize Spark
     spark = create_spark_session()
 
     try:
-        # Load data from HDFS
-        logs_df = load_log_data(spark, dataset_type="standard")
-
+        # Load and explore data
+        logs_df = load_log_data(spark)
         if logs_df is None:
-            print("Failed to load data. Exiting.")
+            print(" Cannot proceed without data. Please run upload_to_hdfs.py first.")
             return
 
-        # Basic data exploration
-        basic_data_exploration(logs_df)
-
-        # Create temporary views
-        logs_with_time = create_temporary_views(logs_df)
+        logs_with_time = explore_data(logs_df)
 
         # Run analytics
-        results = basic_analytics(spark)
-        time_results = time_based_analytics(spark)
-        user_results = user_analytics(spark)
-        rdd_results = rdd_operations_demo_fixed(spark, logs_df)
+        print("\n Running distributed analytics...")
+        results = analyze_log_patterns(spark)
+        time_results = analyze_time_patterns(spark)
+        user_results = analyze_user_behavior(spark)
+        rdd_info = demonstrate_rdd_operations(spark, logs_df)
 
-        demonstrate_course_concepts(spark)  # Shows course understanding
-        pattern_results = simple_pattern_mining(spark)  # Adds data mining
-        academic_summary = generate_academic_summary(spark, results, time_results, user_results,
-                                                     start_time)  # Report data
-        # Save results to HDFS
-        save_success = save_results_to_hdfs_fixed(spark, results, time_results, user_results)
+        # Pattern mining
+        pattern_results = simple_pattern_mining(spark)
 
-        # Show performance metrics
-        performance_metrics(spark, start_time)
+        # Performance testing (optional)
+        run_performance_tests(spark, logs_df)
 
-        # Create comprehensive summary
-        create_summary_report(results, time_results, user_results, rdd_results, start_time)
+        # Save results
+        save_success = save_results_to_hdfs(spark, results, time_results, user_results)
 
-        print("\n=== Analysis Complete! ===")
-        print("Results demonstrate:")
-        print("1. ✅ HDFS data loading and storage")
-        print("2. ✅ Spark SQL queries on distributed data")
-        print("3. ✅ RDD concepts demonstration (via SQL)")
-        print("4. ✅ Data aggregation and filtering")
-        print("5. ✅ Time-based analytics")
-        print("6. ✅ User behavior analysis")
-        print("7. ✅ Results saved back to HDFS")
-        print("8. ✅ Performance monitoring and reporting")
+        # Generate summary
+        generate_summary_report(results, time_results, user_results, rdd_info, start_time)
 
-        if save_success:
-            print(f"\n✅ Check results in HDFS: hdfs dfs -ls /logs/results/")
-        print(f"✅ Spark UI: http://localhost:4040/")
-        print(f"✅ HDFS Web UI: http://localhost:9870/")
+        # Keep Spark UI available for inspection
+        print(f"\n  Spark UI available for 15 seconds: http://localhost:4040/")
+        time.sleep(15)
 
     except Exception as e:
-        print(f"Error during analysis: {e}")
+        print(f" Analytics failed: {e}")
         import traceback
         traceback.print_exc()
 
     finally:
-        show_spark_ui_access(spark)
-
-        # Stop Spark session (course pattern)
         spark.stop()
-        print("\nSpark session stopped")
+        print("\n Spark session terminated")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ def generate_log_entry(timestamp=None):
     if timestamp is None:
         timestamp = datetime.now()
 
-    # Sample data for realistic logs (enhanced with more variety)
+    # Sample data for realistic logs
     endpoints = [
         "/api/users/login", "/api/users/logout", "/api/users/profile", "/api/users/register",
         "/api/products/search", "/api/products/list", "/api/products/details", "/api/products/categories",
@@ -43,7 +43,7 @@ def generate_log_entry(timestamp=None):
         level = random.choice(["INFO", "INFO", "INFO", "DEBUG"])
         response_time = random.randint(50, 1500)
 
-    # Create log entry matching course JSON style
+    # Create log entry
     log_entry = {
         "timestamp": timestamp.isoformat() + "Z",
         "level": level,
@@ -68,7 +68,7 @@ def generate_log_entry(timestamp=None):
 
 
 def generate_log_dataset(num_entries=10000, filename="web_logs.json"):
-    """Generate a dataset of log entries (course JSON format)"""
+    """Generate a dataset of log entries (JSON format)"""
 
     print(f"Generating {num_entries} log entries...")
 
@@ -94,7 +94,6 @@ def generate_log_dataset(num_entries=10000, filename="web_logs.json"):
             print(f"Generated {i + 1} entries...")
 
     # Save in JSON Lines format (one JSON object per line)
-    # This matches the course example pattern
     with open(filename, 'w') as f:
         for log in logs:
             f.write(json.dumps(log) + '\n')
@@ -167,7 +166,7 @@ def generate_partitioned_logs(base_path="data", days=7, entries_per_day=1000):
 
 
 def generate_realistic_traffic_patterns(base_path="data", days=7):
-    """Generate logs with realistic traffic patterns (enhanced feature)"""
+    """Generate logs with realistic traffic patterns """
 
     print(f"=== Generating realistic traffic patterns ===")
 
@@ -235,9 +234,9 @@ def generate_realistic_traffic_patterns(base_path="data", days=7):
 
 
 def main():
-    """Main function following course style"""
+    """Main function """
 
-    print("=== Enhanced Log Data Generator for Big Data Course ===")
+    print("=== Log Data Generator ===")
 
     # Generate different sized datasets for testing
     print("\n--- Generating Standard Datasets ---")

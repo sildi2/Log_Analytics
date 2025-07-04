@@ -23,10 +23,10 @@ def check_hdfs_running():
     try:
         hdfs_manager = HDFSManager()
         hdfs_manager.list_files("/")
-        print("✅ HDFS is running and accessible")
+        print(" HDFS is running and accessible")
         return True
     except Exception as e:
-        print(f"❌ HDFS is not accessible: {e}")
+        print(f" HDFS is not accessible: {e}")
         print("\nTo start HDFS:")
         print("1. Run: start-dfs.sh")
         print("2. Check web interface: http://localhost:9870/")

@@ -19,10 +19,10 @@ def check_python_version():
     print(f"Python version: {version.major}.{version.minor}.{version.micro}")
 
     if version.major < 3 or (version.major == 3 and version.minor < 8):
-        print("❌ Python 3.8+ required")
+        print(" Python 3.8+ required")
         return False
     else:
-        print("✅ Python version OK")
+        print(" Python version OK")
         return True
 
 
@@ -40,21 +40,21 @@ def check_java_version():
 
             # Check for Java 8 or 11
             if 'version "1.8' in java_version or 'version "8' in java_version:
-                print("✅ Java 8 detected - compatible with Spark")
+                print(" Java 8 detected - compatible with Spark")
                 return True
             elif 'version "11' in java_version:
-                print("✅ Java 11 detected - compatible with Spark")
+                print(" Java 11 detected - compatible with Spark")
                 return True
             else:
-                print("⚠️  Java version may not be optimal for Spark")
+                print("️  Java version may not be optimal for Spark")
                 print("   Recommended: Java 8 or 11")
                 return True  # Allow but warn
         else:
-            print("❌ Java not found")
+            print(" Java not found")
             return False
 
     except FileNotFoundError:
-        print("❌ Java not found in PATH")
+        print(" Java not found in PATH")
         print("   Please install Java 8 or 11")
         return False
 
@@ -71,23 +71,23 @@ def check_hadoop_installation():
         if result.returncode == 0:
             version_line = result.stdout.split('\n')[0]
             print(f"Hadoop version: {version_line}")
-            print("✅ Hadoop installation found")
+            print("Hadoop installation found")
 
             # Check HDFS command
             hdfs_result = subprocess.run(['hdfs', 'version'],
                                          capture_output=True, text=True)
             if hdfs_result.returncode == 0:
-                print("✅ HDFS command available")
+                print(" HDFS command available")
                 return True
             else:
-                print("⚠️  HDFS command not working")
+                print("  HDFS command not working")
                 return False
         else:
-            print("❌ Hadoop not found")
+            print(" Hadoop not found")
             return False
 
     except FileNotFoundError:
-        print("❌ Hadoop not found in PATH")
+        print(" Hadoop not found in PATH")
         print("   Please install Hadoop and add to PATH")
         return False
 
@@ -107,7 +107,7 @@ def check_spark_installation():
             spark_submit += '.cmd'
 
         if os.path.exists(spark_submit):
-            print("✅ Spark installation found")
+            print("Spark installation found")
 
             # Try to get version
             try:
@@ -120,14 +120,14 @@ def check_spark_installation():
                         break
 
             except:
-                print("⚠️  Could not determine Spark version")
+                print("  Could not determine Spark version")
 
             return True
         else:
-            print("❌ spark-submit not found in SPARK_HOME/bin")
+            print(" spark-submit not found in SPARK_HOME/bin")
             return False
     else:
-        print("❌ SPARK_HOME environment variable not set")
+        print(" SPARK_HOME environment variable not set")
         print("   Please set SPARK_HOME to your Spark installation directory")
         return False
 
@@ -148,9 +148,9 @@ def check_python_packages():
     for package in required_packages:
         try:
             importlib.import_module(package)
-            print(f"✅ {package} installed")
+            print(f" {package} installed")
         except ImportError:
-            print(f"❌ {package} not installed")
+            print(f" {package} not installed")
             missing_packages.append(package)
 
     if missing_packages:
@@ -158,7 +158,7 @@ def check_python_packages():
         print("Install with: pip install " + " ".join(missing_packages))
         return False
     else:
-        print("✅ All required packages installed")
+        print(" All required packages installed")
         return True
 
 
@@ -172,16 +172,16 @@ def check_hdfs_running():
                                 capture_output=True, text=True)
 
         if result.returncode == 0:
-            print("✅ HDFS is running and accessible")
+            print(" HDFS is running and accessible")
             return True
         else:
-            print("❌ HDFS not accessible")
+            print(" HDFS not accessible")
             print("   Error:", result.stderr.strip())
             print("   Try: start-dfs.sh")
             return False
 
     except Exception as e:
-        print(f"❌ Cannot check HDFS status: {e}")
+        print(f" Cannot check HDFS status: {e}")
         print("   Make sure Hadoop is installed and HDFS is formatted")
         return False
 
@@ -192,7 +192,7 @@ def check_hdfs_configuration():
 
     hadoop_home = os.environ.get('HADOOP_HOME')
     if not hadoop_home:
-        print("❌ HADOOP_HOME not set")
+        print(" HADOOP_HOME not set")
         return False
 
     config_dir = os.path.join(hadoop_home, 'etc', 'hadoop')
@@ -208,7 +208,7 @@ def check_hdfs_configuration():
         config_path = os.path.join(config_dir, config_file)
 
         if os.path.exists(config_path):
-            print(f"✅ {config_file} found")
+            print(f" {config_file} found")
 
             # Read and check basic content
             try:
@@ -217,12 +217,12 @@ def check_hdfs_configuration():
                     if key_setting in content:
                         print(f"   Contains {key_setting} configuration")
                     else:
-                        print(f"   ⚠️  Missing {key_setting} configuration")
+                        print(f"     Missing {key_setting} configuration")
             except:
-                print(f"   ⚠️  Could not read {config_file}")
+                print(f"    Could not read {config_file}")
 
         else:
-            print(f"❌ {config_file} not found at {config_path}")
+            print(f" {config_file} not found at {config_path}")
             all_good = False
 
     return all_good
@@ -246,7 +246,7 @@ def create_project_directories():
 
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
-        print(f"✅ Created directory: {directory}")
+        print(f" Created directory: {directory}")
 
     return True
 
@@ -266,7 +266,7 @@ def create_requirements_file():
         for req in requirements:
             f.write(req + '\n')
 
-    print("✅ requirements.txt created")
+    print(" requirements.txt created")
     return True
 
 
@@ -305,7 +305,7 @@ def main():
     print(f"\n=== Environment Check Summary ===")
     passed = 0
     for check_name, result in checks:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = " PASS" if result else " FAIL"
         print(f"{check_name}: {status}")
         if result:
             passed += 1
@@ -318,7 +318,7 @@ def main():
         create_requirements_file()
         show_next_steps()
     else:
-        print("\n⚠️  Some checks failed. Please resolve issues before proceeding.")
+        print("\n  Some checks failed. Please resolve issues before proceeding.")
         print("\nCommon solutions:")
         print("- Install Java 8 or 11")
         print("- Install Hadoop and set HADOOP_HOME")
