@@ -54,8 +54,8 @@ def load_log_data(spark):
         count = logs_df.count()
         partitions = logs_df.rdd.getNumPartitions()
 
-        print(f"📁 Loaded {count:,} log entries")
-        print(f"🔢 Data distributed across {partitions} partitions")
+        print(f" Loaded {count:,} log entries")
+        print(f" Data distributed across {partitions} partitions")
 
         return logs_df
 
@@ -398,11 +398,11 @@ def run_performance_tests(spark, logs_df):
     response = input("Run performance benchmarks? (y/N): ").strip().lower()
 
     if response != 'y':
-        print("⏭️  Skipping performance tests")
+        print(" Skipping performance tests")
         return True
 
     try:
-        print("🔄 Running omprehensive performance analysis...")
+        print(" Running  performance analysis...")
 
         # Run all tests silently (no individual output)
         load_results = test_data_loading_performance_silent(spark)
