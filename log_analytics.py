@@ -403,7 +403,7 @@ def run_performance_tests(spark, logs_df):
         rdd_results = test_rdd_performance_silent(spark, logs_df)
 
         # Generate  report
-        generate_consolidated_performance_report(load_results, query_results, rdd_results)
+        generate_final_performance_report(load_results, query_results, rdd_results)
 
         return True
 
@@ -546,7 +546,7 @@ def test_rdd_performance_silent(spark, logs_df):
     return results
 
 
-def generate_consolidated_performance_report(load_results, query_results, rdd_results):
+def generate_final_performance_report(load_results, query_results, rdd_results):
     print(f"\n{'=' * 70}")
     print(" PERFORMANCE REPORT")
     print(f"{'=' * 70}")

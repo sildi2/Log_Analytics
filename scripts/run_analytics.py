@@ -40,8 +40,10 @@ def run_data_generation():
 
     print("\n=== Data Generation ===")
 
-    if not os.path.exists("data") and not any(
-            os.path.exists(f) for f in ["logs_small.json", "logs_medium.json", "logs_large.json"]):
+    # Check if JSON files exist in current directory
+    json_files_exist = any(os.path.exists(f) for f in ["logs_small.json", "logs_medium.json", "logs_large.json"])
+
+    if not json_files_exist:
         print(" Generating sample log data...")
 
         try:
