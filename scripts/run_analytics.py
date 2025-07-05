@@ -69,7 +69,7 @@ def run_hdfs_upload():
     try:
         files = hdfs_manager.list_files("/logs/raw")
         if len(files) == 0:
-            print("🔄 Uploading data to HDFS...")
+            print(" Uploading data to HDFS...")
 
             try:
                 from upload_to_hdfs import main as upload_main

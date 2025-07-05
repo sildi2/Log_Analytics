@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Log Analytics with Apache Spark and HDFS
-Big Data Course Project - Clean Professional Version with Fixed Performance Testing
-"""
+
 
 import pyspark
 from pyspark.sql.functions import *
@@ -272,8 +269,6 @@ def demonstrate_rdd_operations(spark, logs_df):
 
 
 def simple_pattern_mining(spark):
-    """Simple frequent pattern analysis - FIXED VERSION"""
-
     print("\n=== Frequent Pattern Analysis ===")
 
     # Check what data we actually have
@@ -391,8 +386,6 @@ def simple_pattern_mining(spark):
 
 
 def run_performance_tests(spark, logs_df):
-    """Run comprehensive performance testing - CONSOLIDATED REPORT VERSION"""
-
     print("\n=== Performance Testing ===")
 
     response = input("Run performance benchmarks? (y/N): ").strip().lower()
@@ -409,7 +402,7 @@ def run_performance_tests(spark, logs_df):
         query_results = test_query_performance_silent(spark)
         rdd_results = test_rdd_performance_silent(spark, logs_df)
 
-        # Generate single consolidated report
+        # Generate  report
         generate_consolidated_performance_report(load_results, query_results, rdd_results)
 
         return True
@@ -420,7 +413,7 @@ def run_performance_tests(spark, logs_df):
 
 
 def test_data_loading_performance_silent(spark):
-    """Test data loading performance - SILENT VERSION"""
+    """Test data loading performance - SILENT """
 
     test_datasets = [
         ("Small Dataset", "hdfs://localhost:9000/logs/raw/logs_small.json"),
@@ -457,7 +450,7 @@ def test_data_loading_performance_silent(spark):
 
 
 def test_query_performance_silent(spark):
-    """Test query performance - SILENT VERSION"""
+    """Test query performance - SILENT """
 
     try:
         df = spark.read.json("hdfs://localhost:9000/logs/raw/*")
@@ -505,7 +498,7 @@ def test_query_performance_silent(spark):
 
 
 def test_rdd_performance_silent(spark, logs_df):
-    """Test RDD operations performance - SILENT VERSION"""
+    """Test RDD operations performance - SILENT """
 
     try:
         rdd = logs_df.rdd
@@ -685,8 +678,6 @@ def save_results_to_hdfs(spark, results, time_results, user_results):
 
 
 def generate_summary_report(results, time_results, user_results, rdd_info, start_time):
-    """Generate final analytics summary"""
-
     end_time = time.time()
     processing_time = end_time - start_time
 

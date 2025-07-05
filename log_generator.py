@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-Enhanced Log Data Generator for Big Data Course Project
-Following exact course coding patterns and style
-Enhanced with HDFS partitioning and better data distribution
-"""
 
 import json
 import random
@@ -12,8 +7,6 @@ import os
 
 
 def generate_log_entry(timestamp=None):
-    """Generate a single log entry in JSON format (course style)"""
-
     if timestamp is None:
         timestamp = datetime.now()
 
@@ -68,8 +61,6 @@ def generate_log_entry(timestamp=None):
 
 
 def generate_log_dataset(num_entries=10000, filename="web_logs.json"):
-    """Generate a dataset of log entries (JSON format)"""
-
     print(f"Generating {num_entries} log entries...")
 
     # Generate logs over last 7 days
@@ -101,7 +92,7 @@ def generate_log_dataset(num_entries=10000, filename="web_logs.json"):
     print(f"Dataset saved to {filename}")
     print(f"File size: {os.path.getsize(filename) / 1024 / 1024:.2f} MB")
 
-    # Show sample entries (course style)
+    # Show sample entries
     print("\nSample log entries:")
     for i in range(3):
         print(f"Entry {i + 1}:", json.dumps(logs[i], indent=2))
@@ -110,7 +101,7 @@ def generate_log_dataset(num_entries=10000, filename="web_logs.json"):
 
 
 def generate_partitioned_logs(base_path="data", days=7, entries_per_day=1000):
-    """Generate logs partitioned by date for HDFS efficiency (enhanced feature)"""
+    """Generate logs partitioned by date for HDFS efficiency """
 
     print(f"=== Generating partitioned logs for {days} days ===")
     print(f"Entries per day: {entries_per_day}")
@@ -234,8 +225,6 @@ def generate_realistic_traffic_patterns(base_path="data", days=7):
 
 
 def main():
-    """Main function """
-
     print("=== Log Data Generator ===")
 
     # Generate different sized datasets for testing
@@ -250,7 +239,7 @@ def main():
         print(f"\n--- Generating {filename} ---")
         generate_log_dataset(num_entries, filename)
 
-    # Generate partitioned datasets (HDFS-friendly)
+    # Generate partitioned datasets
     print("\n--- Generating Partitioned Datasets (HDFS-friendly) ---")
     generate_partitioned_logs("data/partitioned", days=7, entries_per_day=2000)
 

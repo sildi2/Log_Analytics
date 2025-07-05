@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-HDFS Operations for Log Analytics Project
-Following exact course patterns and style
-"""
+
 
 import subprocess
 import os
@@ -10,15 +7,14 @@ from hdfs import InsecureClient
 
 
 class HDFSManager:
-    """HDFS operations manager following course style"""
 
     def __init__(self, namenode_url="http://localhost:9870", user="hadoop"):
-        """Initialize HDFS client (course pattern)"""
+        """Initialize HDFS client """
         self.client = InsecureClient(namenode_url, user=user)
         self.namenode_url = namenode_url
 
     def upload_logs(self, local_path, hdfs_path):
-        """Upload log files to HDFS (course style)"""
+        """Upload log files to HDFS """
         try:
             self.client.upload(hdfs_path, local_path, overwrite=True)
             print(f"Uploaded {local_path} to {hdfs_path}")
@@ -28,7 +24,7 @@ class HDFSManager:
             return False
 
     def list_files(self, path="/"):
-        """List files in HDFS directory (course pattern)"""
+        """List files in HDFS directory """
         try:
             files = self.client.list(path)
             print(f"Files in {path}:")
@@ -40,7 +36,7 @@ class HDFSManager:
             return []
 
     def download_results(self, hdfs_path, local_path):
-        """Download results from HDFS (course style)"""
+        """Download results from HDFS """
         try:
             self.client.download(hdfs_path, local_path, overwrite=True)
             print(f"Downloaded {hdfs_path} to {local_path}")
@@ -50,7 +46,7 @@ class HDFSManager:
             return False
 
     def create_directory(self, hdfs_path):
-        """Create directory in HDFS (course pattern)"""
+        """Create directory in HDFS """
         try:
             self.client.makedirs(hdfs_path)
             print(f"Created directory: {hdfs_path}")
@@ -60,7 +56,7 @@ class HDFSManager:
             return False
 
     def file_exists(self, hdfs_path):
-        """Check if file exists in HDFS (course style)"""
+        """Check if file exists in HDFS """
         try:
             status = self.client.status(hdfs_path, strict=False)
             return status is not None
@@ -68,7 +64,6 @@ class HDFSManager:
             return False
 
     def get_file_info(self, hdfs_path):
-        """Get file information (course pattern)"""
         try:
             status = self.client.status(hdfs_path)
             print(f"File info for {hdfs_path}:")
@@ -82,8 +77,6 @@ class HDFSManager:
 
 
 def setup_hdfs_directories():
-    """Setup HDFS directory structure for project (course style)"""
-
     print("=== Setting up HDFS directories ===")
 
     hdfs_manager = HDFSManager()
@@ -106,8 +99,6 @@ def setup_hdfs_directories():
 
 
 def test_hdfs_connection():
-    """Test HDFS connection (course style)"""
-
     print("=== Testing HDFS Connection ===")
 
     try:
@@ -132,16 +123,15 @@ def test_hdfs_connection():
             content = reader.read()
             print(f"   Test file content: {content}")
 
-        print("✅ HDFS connection test successful!")
+        print(" HDFS connection test successful!")
         return True
 
     except Exception as e:
-        print(f"❌ HDFS connection test failed: {e}")
+        print(f" HDFS connection test failed: {e}")
         return False
 
 
 if __name__ == "__main__":
-    """Main function for testing (course style)"""
 
     print("=== HDFS Operations Testing ===")
 

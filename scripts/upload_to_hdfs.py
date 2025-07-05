@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Upload generated logs to HDFS
-Following exact course patterns and style
-"""
+
 
 import os
 import subprocess
@@ -16,7 +13,7 @@ from utils.hdfs_operations import HDFSManager
 
 
 def check_hdfs_running():
-    """Check if HDFS is running (course style)"""
+    """Check if HDFS is running """
 
     print("=== Checking HDFS Status ===")
 
@@ -35,7 +32,7 @@ def check_hdfs_running():
 
 
 def upload_standard_datasets():
-    """Upload standard log datasets to HDFS (course style)"""
+    """Upload standard log datasets to HDFS """
 
     print("\n=== Uploading Standard Datasets ===")
 
@@ -67,7 +64,7 @@ def upload_standard_datasets():
 
 
 def upload_partitioned_datasets():
-    """Upload partitioned datasets to HDFS (course style)"""
+    """Upload partitioned datasets to HDFS """
 
     print("\n=== Uploading Partitioned Datasets ===")
 
@@ -101,7 +98,7 @@ def upload_partitioned_datasets():
 
 
 def upload_realistic_datasets():
-    """Upload realistic traffic pattern datasets to HDFS (course style)"""
+    """Upload realistic traffic pattern datasets to HDFS"""
 
     print("\n=== Uploading Realistic Traffic Datasets ===")
 
@@ -134,7 +131,7 @@ def upload_realistic_datasets():
 
 
 def verify_uploads():
-    """Verify all uploads completed successfully (course style)"""
+    """Verify all uploads completed successfully """
 
     print("\n=== Verifying HDFS Uploads ===")
 
@@ -151,17 +148,17 @@ def verify_uploads():
 
 
 def cleanup_local_files():
-    """Clean up local files after successful upload (course style)"""
+    """Clean up local files after successful upload """
 
     print("\n=== Cleanup Options ===")
     resp = input("Remove local logs after upload? (y/N): ").strip().lower()
     if resp == 'y':
-        for f in ["logs_small.json","logs_medium.json","logs_large.json"]:
+        for f in ["logs_small.json", "logs_medium.json", "logs_large.json"]:
             if os.path.exists(f):
                 os.remove(f)
                 print(f"Removed {f}")
         import shutil
-        for d in ["data/partitioned","data/realistic"]:
+        for d in ["data/partitioned", "data/realistic"]:
             if os.path.exists(d):
                 shutil.rmtree(d)
                 print(f"Removed {d}")
@@ -171,17 +168,17 @@ def cleanup_local_files():
 
 
 def show_hdfs_usage():
-    """Show HDFS space usage (course style)"""
+    """Show HDFS space usage """
 
     print("\n=== HDFS Usage Summary ===")
     try:
-        du = subprocess.run(["hdfs","dfs","-du","-h","/logs"],capture_output=True,text=True)
+        du = subprocess.run(["hdfs", "dfs", "-du", "-h", "/logs"], capture_output=True, text=True)
         if du.returncode == 0:
             print("HDFS space usage:\n" + du.stdout)
-        rep = subprocess.run(["hdfs","dfsadmin","-report"],capture_output=True,text=True)
+        rep = subprocess.run(["hdfs", "dfsadmin", "-report"], capture_output=True, text=True)
         if rep.returncode == 0:
             for line in rep.stdout.splitlines()[:10]:
-                if any(k in line for k in ['Configured','DFS Used','DFS Remaining']):
+                if any(k in line for k in ['Configured', 'DFS Used', 'DFS Remaining']):
                     print(line)
     except Exception as e:
         print(f"Could not get HDFS usage: {e}")
@@ -205,6 +202,7 @@ def main():
     print("1. python analytics/log_analytics.py")
     print("2. HDFS Web UI: http://localhost:9870/")
     print("3. hdfs dfs -ls -R /logs/")
+
 
 if __name__ == "__main__":
     main()

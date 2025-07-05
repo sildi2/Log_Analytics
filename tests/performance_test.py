@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Performance testing for the log analytics system - FIXED VERSION
-Corrected HDFS paths and Python compatibility issues
-"""
+
 
 import time
 import pyspark
@@ -36,7 +33,6 @@ def test_data_loading_performance():
 
     spark = create_test_spark_session()
 
-    # FIXED: Correct HDFS paths
     test_datasets = [
         ("Small Dataset", "hdfs://localhost:9000/logs/raw/logs_small.json"),
         ("Medium Dataset", "hdfs://localhost:9000/logs/raw/logs_medium.json"),
@@ -166,7 +162,7 @@ def test_query_performance():
 
 
 def generate_performance_report(load_results, query_results):
-    """Generate performance report - FIXED VERSION"""
+    """Generate performance report"""
 
     print(f"\n{'=' * 60}")
     print("PERFORMANCE TEST REPORT")
@@ -202,7 +198,7 @@ def generate_performance_report(load_results, query_results):
     print(f"Successful load tests: {successful_loads}/{len(load_results)}")
     print(f"Successful query tests: {successful_queries}/{len(query_results)}")
 
-    # Find best performing operations manually (avoid min() with key)
+    # Find best performing operations manually
     if successful_queries > 0:
         fastest_time = float('inf')
         fastest_query = None
@@ -219,7 +215,6 @@ def generate_performance_report(load_results, query_results):
 
 
 def main():
-    """Main performance testing function"""
 
     print("=== Big Data Log Analytics Performance Testing ===")
     print("Testing system performance with corrected paths")
